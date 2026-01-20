@@ -1,5 +1,8 @@
+import 'dart:io';
+
 import 'package:camera/camera.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 
 import '../face_camera.dart';
 import 'controllers/face_camera_state.dart';
@@ -219,19 +222,23 @@ class _SmartFaceCameraState extends State<SmartFaceCamera>
   Widget _cameraDisplayWidget(FaceCameraState value) {
     final CameraController? cameraController = value.cameraController;
     if (cameraController != null && cameraController.value.isInitialized) {
-      return CameraPreview(cameraController, child: Builder(builder: (context) {
-        if (widget.messageBuilder != null) {
-          return widget.messageBuilder!.call(context, value.detectedFace);
-        }
-        if (widget.message != null) {
-          return Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 55, vertical: 15),
-            child: Text(widget.message!,
-                textAlign: TextAlign.center, style: widget.messageStyle),
-          );
-        }
-        return const SizedBox.shrink();
-      }));
+      return CameraPreview(
+        cameraController,
+        Platform.isIOS ? null : DeviceOrientation.portraitUp,
+        child: Builder(builder: (context) {
+          if (widget.messageBuilder != null) {
+            return widget.messageBuilder!.call(context, value.detectedFace);
+          }
+          if (widget.message != null) {
+            return Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 55, vertical: 15),
+              child: Text(widget.message!,
+                  textAlign: TextAlign.center, style: widget.messageStyle),
+            );
+          }
+          return const SizedBox.shrink();
+        }),
+      );
     }
     return const SizedBox.shrink();
   }
