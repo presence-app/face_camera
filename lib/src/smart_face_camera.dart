@@ -177,16 +177,6 @@ class _SmartFaceCameraState extends State<SmartFaceCamera>
                   ),
                 ),
               )
-            ] else ...[
-              const Text('No Camera Detected',
-                  style: TextStyle(
-                    fontSize: 18.0,
-                    fontWeight: FontWeight.w500,
-                  )),
-              CustomPaint(
-                size: size,
-                painter: HolePainter(),
-              )
             ],
             if (widget.showControls) ...[
               Align(
