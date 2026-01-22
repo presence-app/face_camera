@@ -244,21 +244,19 @@ class _SmartFaceCameraState extends State<SmartFaceCamera>
 
   /// Display the control buttons to take pictures.
   Widget _captureControlWidget(FaceCameraState value) {
+    final canCapture = widget.controller.enableControls &&
+        !_disableCapture &&
+        value.detectedFace?.wellPositioned == true;
+
     return IconButton(
       icon: widget.captureControlBuilder?.call(context, value.detectedFace) ??
           CircleAvatar(
               radius: 35,
-              foregroundColor:
-                  widget.controller.enableControls && !_disableCapture
-                      ? null
-                      : Theme.of(context).disabledColor,
               child: const Padding(
                 padding: EdgeInsets.all(8.0),
                 child: Icon(Icons.camera_alt, size: 35),
               )),
-      onPressed: widget.controller.enableControls && !_disableCapture
-          ? widget.controller.captureImage
-          : null,
+      onPressed: canCapture ? widget.controller.captureImage : null,
     );
   }
 

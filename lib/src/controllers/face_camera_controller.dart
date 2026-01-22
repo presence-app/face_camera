@@ -93,7 +93,7 @@ class FaceCameraController extends ValueNotifier<FaceCameraState> {
           EnumHandler.imageResolutionToResolutionPreset(imageResolution),
           enableAudio: enableAudio,
           imageFormatGroup: Platform.isAndroid
-              ? ImageFormatGroup.nv21
+              ? ImageFormatGroup.yuv420
               : ImageFormatGroup.bgra8888);
 
       await cameraController.initialize().whenComplete(() {
@@ -168,6 +168,7 @@ class FaceCameraController extends ValueNotifier<FaceCameraState> {
       return;
     }
     if (!cameraController.value.isStreamingImages) {
+      _isCapturing = false;
       await cameraController.startImageStream(_processImage);
     }
   }
@@ -181,6 +182,8 @@ class FaceCameraController extends ValueNotifier<FaceCameraState> {
       await cameraController.stopImageStream();
     }
   }
+
+  bool _isCapturing = false;
 
   void _processImage(CameraImage cameraImage) async {
     final CameraController? cameraController = value.cameraController;
@@ -199,8 +202,13 @@ class FaceCameraController extends ValueNotifier<FaceCameraState> {
               if (result.face != null) {
                 onFaceDetected?.call(result.face);
               }
+              debugPrint(
+                  'Face detected - wellPositioned: ${result.wellPositioned}, autoCapture: $autoCapture, _isCapturing: $_isCapturing');
               if (autoCapture &&
+                  !_isCapturing &&
                   (result.wellPositioned || ignoreFacePositioning)) {
+                debugPrint('Capturing image now');
+                _isCapturing = true;
                 captureImage();
               }
             } catch (e) {
@@ -222,6 +230,7 @@ class FaceCameraController extends ValueNotifier<FaceCameraState> {
   }
 
   void captureImage() async {
+    debugPrint('captureImage() called');
     final CameraController? cameraController = value.cameraController;
     try {
       cameraController!.stopImageStream().whenComplete(() async {
@@ -229,6 +238,7 @@ class FaceCameraController extends ValueNotifier<FaceCameraState> {
         takePicture().then((XFile? file) {
           /// Return image callback
           if (file != null) {
+            debugPrint('Image captured: ${file.path}');
             onCapture.call(File(file.path));
           }
         });

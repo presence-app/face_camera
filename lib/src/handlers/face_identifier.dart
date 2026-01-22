@@ -45,7 +45,10 @@ class FaceIdentifier {
     } else if (Platform.isAndroid) {
       var rotationCompensation =
           orientations[controller.value.deviceOrientation];
-      if (rotationCompensation == null) return null;
+      if (rotationCompensation == null) {
+        // Default to portrait up if orientation is not available
+        rotationCompensation = orientations[DeviceOrientation.portraitUp]!;
+      }
       if (camera.lensDirection == CameraLensDirection.front) {
         // front-facing
         rotationCompensation = (sensorOrientation + rotationCompensation) % 360;
@@ -68,7 +71,9 @@ class FaceIdentifier {
     if (image.planes.isEmpty) return null;
 
     final bytes = Platform.isAndroid
-        ? image.getNv21Uint8List()
+        ? (image.planes.length >= 3
+            ? image.getNv21Uint8List()
+            : image.planes.first.bytes)
         : Uint8List.fromList(
             image.planes.fold(
                 <int>[],
@@ -82,7 +87,9 @@ class FaceIdentifier {
       metadata: InputImageMetadata(
         size: Size(image.width.toDouble(), image.height.toDouble()),
         rotation: rotation, // used only in Android
-        format: Platform.isIOS ? format : InputImageFormat.nv21,
+        format: Platform.isIOS
+            ? format
+            : (image.planes.length >= 3 ? InputImageFormat.nv21 : format),
         bytesPerRow: image.planes.first.bytesPerRow, // used only in iOS
       ),
     );
