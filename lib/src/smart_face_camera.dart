@@ -50,6 +50,10 @@ class SmartFaceCamera extends StatefulWidget {
   /// Use this to build custom widgets for the face indicator
   final IndicatorBuilder? indicatorBuilder;
 
+  /// Scale factor for the face indicator size. Default is 1.0 (100%).
+  /// Use values like 0.8 for 80% size or 1.2 for 120% size.
+  final double indicatorScale;
+
   /// Set true to automatically disable capture control widget when no face is detected.
   final bool autoDisableCaptureControl;
 
@@ -78,6 +82,7 @@ class SmartFaceCamera extends StatefulWidget {
       this.indicatorShape = IndicatorShape.defaultShape,
       this.indicatorAssetImage,
       this.indicatorBuilder,
+      this.indicatorScale = 1.0,
       this.autoDisableCaptureControl = false,
       this.fit = BoxFit.fitHeight,
       this.aspectRatio,
@@ -170,6 +175,8 @@ class _SmartFaceCameraState extends State<SmartFaceCamera>
                                                 widget.indicatorShape,
                                             indicatorAssetImage:
                                                 widget.indicatorAssetImage,
+                                            indicatorScale:
+                                                widget.indicatorScale,
                                             imageSize: Size(
                                               cameraController
                                                   .value.previewSize!.height,

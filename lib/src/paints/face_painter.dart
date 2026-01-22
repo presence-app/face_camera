@@ -8,12 +8,14 @@ class FacePainter extends CustomPainter {
       {required this.imageSize,
       this.face,
       required this.indicatorShape,
-      this.indicatorAssetImage});
+      this.indicatorAssetImage,
+      this.indicatorScale = 1.0});
   final Size imageSize;
   double? scaleX, scaleY;
   final Face? face;
   final IndicatorShape indicatorShape;
   final String? indicatorAssetImage;
+  final double indicatorScale;
   @override
   void paint(Canvas canvas, Size size) {
     if (face == null) return;
@@ -42,7 +44,8 @@ class FacePainter extends CustomPainter {
               rect: face!.boundingBox,
               widgetSize: size,
               scaleX: scaleX,
-              scaleY: scaleY),
+              scaleY: scaleY,
+              indicatorScale: indicatorScale),
           paint, // Adjust color as needed
         );
         break;
@@ -52,7 +55,8 @@ class FacePainter extends CustomPainter {
                 rect: face!.boundingBox,
                 widgetSize: size,
                 scaleX: scaleX,
-                scaleY: scaleY),
+                scaleY: scaleY,
+                indicatorScale: indicatorScale),
             paint);
         break;
       case IndicatorShape.circle:
@@ -62,7 +66,7 @@ class FacePainter extends CustomPainter {
               widgetSize: size,
               scaleX: scaleX,
               scaleY: scaleY),
-          face!.boundingBox.width / 2 * scaleX!,
+          face!.boundingBox.width / 2 * scaleX! * indicatorScale,
           paint, // Adjust color as needed
         );
         break;
@@ -74,6 +78,7 @@ class FacePainter extends CustomPainter {
               widgetSize: size,
               scaleX: scaleX,
               scaleY: scaleY,
+              indicatorScale: indicatorScale,
               isInverted: indicatorShape == IndicatorShape.triangleInverted),
           paint, // Adjust color as needed
         );
@@ -117,14 +122,20 @@ Path _defaultPath(
     {required Rect rect,
     required Size widgetSize,
     double? scaleX,
-    double? scaleY}) {
+    double? scaleY,
+    double indicatorScale = 1.0}) {
   double cornerExtension =
       30.0; // Adjust the length of the corner extensions as needed
 
-  double left = widgetSize.width - rect.left.toDouble() * scaleX!;
-  double right = widgetSize.width - rect.right.toDouble() * scaleX;
-  double top = rect.top.toDouble() * scaleY!;
-  double bottom = rect.bottom.toDouble() * scaleY;
+  double centerX = widgetSize.width - rect.center.dx * scaleX!;
+  double centerY = rect.center.dy * scaleY!;
+  double halfWidth = (rect.width * scaleX * indicatorScale) / 2;
+  double halfHeight = (rect.height * scaleY * indicatorScale) / 2;
+
+  double left = centerX - halfWidth;
+  double right = centerX + halfWidth;
+  double top = centerY - halfHeight;
+  double bottom = centerY + halfHeight;
   return Path()
     ..moveTo(left - cornerExtension, top)
     ..lineTo(left, top)
@@ -144,13 +155,15 @@ RRect _scaleRect(
     {required Rect rect,
     required Size widgetSize,
     double? scaleX,
-    double? scaleY}) {
-  return RRect.fromLTRBR(
-      (widgetSize.width - rect.left.toDouble() * scaleX!),
-      rect.top.toDouble() * scaleY!,
-      widgetSize.width - rect.right.toDouble() * scaleX,
-      rect.bottom.toDouble() * scaleY,
-      const Radius.circular(10));
+    double? scaleY,
+    double indicatorScale = 1.0}) {
+  double centerX = widgetSize.width - rect.center.dx * scaleX!;
+  double centerY = rect.center.dy * scaleY!;
+  double halfWidth = (rect.width * scaleX * indicatorScale) / 2;
+  double halfHeight = (rect.height * scaleY * indicatorScale) / 2;
+
+  return RRect.fromLTRBR(centerX - halfWidth, centerY - halfHeight,
+      centerX + halfWidth, centerY + halfHeight, const Radius.circular(10));
 }
 
 Offset _circleOffset(
@@ -169,23 +182,23 @@ Path _trianglePath(
     required Size widgetSize,
     double? scaleX,
     double? scaleY,
+    double indicatorScale = 1.0,
     bool isInverted = false}) {
+  double centerX = widgetSize.width - rect.center.dx * scaleX!;
+  double centerY = rect.center.dy * scaleY!;
+  double halfWidth = (rect.width * scaleX * indicatorScale) / 2;
+  double halfHeight = (rect.height * scaleY * indicatorScale) / 2;
+
   if (isInverted) {
     return Path()
-      ..moveTo(widgetSize.width - rect.center.dx * scaleX!,
-          rect.bottom.toDouble() * scaleY!)
-      ..lineTo(widgetSize.width - rect.left.toDouble() * scaleX,
-          rect.top.toDouble() * scaleY)
-      ..lineTo(widgetSize.width - rect.right.toDouble() * scaleX,
-          rect.top.toDouble() * scaleY)
+      ..moveTo(centerX, centerY + halfHeight)
+      ..lineTo(centerX - halfWidth, centerY - halfHeight)
+      ..lineTo(centerX + halfWidth, centerY - halfHeight)
       ..close();
   }
   return Path()
-    ..moveTo(widgetSize.width - rect.center.dx * scaleX!,
-        rect.top.toDouble() * scaleY!)
-    ..lineTo(widgetSize.width - rect.left.toDouble() * scaleX,
-        rect.bottom.toDouble() * scaleY)
-    ..lineTo(widgetSize.width - rect.right.toDouble() * scaleX,
-        rect.bottom.toDouble() * scaleY)
+    ..moveTo(centerX, centerY - halfHeight)
+    ..lineTo(centerX - halfWidth, centerY + halfHeight)
+    ..lineTo(centerX + halfWidth, centerY + halfHeight)
     ..close();
 }
