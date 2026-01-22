@@ -56,6 +56,9 @@ class SmartFaceCamera extends StatefulWidget {
   /// The controller for the [SmartFaceCamera] widget.
   final FaceCameraController controller;
 
+  /// How the camera preview should be inscribed into the space allocated during layout.
+  final BoxFit fit;
+
   const SmartFaceCamera(
       {required this.controller,
       this.showControls = true,
@@ -73,6 +76,7 @@ class SmartFaceCamera extends StatefulWidget {
       this.indicatorAssetImage,
       this.indicatorBuilder,
       this.autoDisableCaptureControl = false,
+      this.fit = BoxFit.fitHeight,
       Key? key})
       : assert(
             indicatorShape != IndicatorShape.image ||
@@ -130,7 +134,7 @@ class _SmartFaceCameraState extends State<SmartFaceCamera>
                   child: OverflowBox(
                     alignment: Alignment.center,
                     child: FittedBox(
-                      fit: BoxFit.fitHeight,
+                      fit: widget.fit,
                       child: SizedBox(
                         width: size.width,
                         height: size.width * cameraController.value.aspectRatio,
