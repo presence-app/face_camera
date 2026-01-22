@@ -59,6 +59,9 @@ class SmartFaceCamera extends StatefulWidget {
   /// How the camera preview should be inscribed into the space allocated during layout.
   final BoxFit fit;
 
+  /// The aspect ratio of the camera preview. If null, uses the screen's aspect ratio.
+  final double? aspectRatio;
+
   const SmartFaceCamera(
       {required this.controller,
       this.showControls = true,
@@ -77,6 +80,7 @@ class SmartFaceCamera extends StatefulWidget {
       this.indicatorBuilder,
       this.autoDisableCaptureControl = false,
       this.fit = BoxFit.fitHeight,
+      this.aspectRatio,
       Key? key})
       : assert(
             indicatorShape != IndicatorShape.image ||
@@ -130,7 +134,7 @@ class _SmartFaceCameraState extends State<SmartFaceCamera>
               Transform.scale(
                 scale: 1.0,
                 child: AspectRatio(
-                  aspectRatio: size.aspectRatio,
+                  aspectRatio: widget.aspectRatio ?? size.aspectRatio,
                   child: OverflowBox(
                     alignment: Alignment.center,
                     child: FittedBox(
