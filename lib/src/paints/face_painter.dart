@@ -22,17 +22,65 @@ class FacePainter extends CustomPainter {
 
     Paint paint;
 
-    if (face!.headEulerAngleY! > 10 || face!.headEulerAngleY! < -10) {
-      paint = Paint()
-        ..style = PaintingStyle.stroke
-        ..strokeWidth = 3.0
-        ..color = Colors.red;
-    } else {
-      paint = Paint()
-        ..style = PaintingStyle.stroke
-        ..strokeWidth = 3.0
-        ..color = Colors.green;
+    // Check if face is well positioned using the same logic as face_identifier
+    bool wellPositioned = true;
+
+    // Check face size - should be 20-70% of image width, adjusted for indicator scale
+    // If indicator is scaled down (e.g., 0.8), the acceptable face size range should be proportionally smaller
+    final faceWidthRatio = face!.boundingBox.width / imageSize.width;
+    final minRatio = 0.2 * indicatorScale;
+    final maxRatio = 0.7 * indicatorScale;
+    if (faceWidthRatio < minRatio || faceWidthRatio > maxRatio) {
+      wellPositioned = false;
     }
+
+    // Check head rotation (Y-axis) - relaxed to ±15 degrees for maximum flexibility
+    if (face!.headEulerAngleY! > 15 || face!.headEulerAngleY! < -15) {
+      wellPositioned = false;
+    }
+
+    // Check head tilt (Z-axis) - relaxed to ±15 degrees for maximum flexibility
+    if (face!.headEulerAngleZ! > 15 || face!.headEulerAngleZ! < -15) {
+      wellPositioned = false;
+    }
+
+    // Check for key facial landmarks (at least 3 out of 6 should be detected)
+    final leftEar = face!.landmarks[FaceLandmarkType.leftEar];
+    final rightEar = face!.landmarks[FaceLandmarkType.rightEar];
+    final bottomMouth = face!.landmarks[FaceLandmarkType.bottomMouth];
+    final rightMouth = face!.landmarks[FaceLandmarkType.rightMouth];
+    final leftMouth = face!.landmarks[FaceLandmarkType.leftMouth];
+    final noseBase = face!.landmarks[FaceLandmarkType.noseBase];
+
+    int detectedLandmarks = 0;
+    if (leftEar != null) detectedLandmarks++;
+    if (rightEar != null) detectedLandmarks++;
+    if (bottomMouth != null) detectedLandmarks++;
+    if (rightMouth != null) detectedLandmarks++;
+    if (leftMouth != null) detectedLandmarks++;
+    if (noseBase != null) detectedLandmarks++;
+
+    if (detectedLandmarks < 3) {
+      wellPositioned = false;
+    }
+
+    // Check if eyes are reasonably open - relaxed threshold
+    if (face!.leftEyeOpenProbability != null) {
+      if (face!.leftEyeOpenProbability! < 0.3) {
+        wellPositioned = false;
+      }
+    }
+
+    if (face!.rightEyeOpenProbability != null) {
+      if (face!.rightEyeOpenProbability! < 0.3) {
+        wellPositioned = false;
+      }
+    }
+
+    paint = Paint()
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 3.0
+      ..color = wellPositioned ? Colors.green : Colors.red;
 
     scaleX = size.width / imageSize.width;
     scaleY = size.height / imageSize.height;
@@ -129,26 +177,32 @@ Path _defaultPath(
 
   double centerX = widgetSize.width - rect.center.dx * scaleX!;
   double centerY = rect.center.dy * scaleY!;
-  double halfWidth = (rect.width * scaleX * indicatorScale) / 2;
-  double halfHeight = (rect.height * scaleY * indicatorScale) / 2;
+  // Increase size by 20% for better visibility
+  double halfWidth = (rect.width * scaleX * indicatorScale * 1.2) / 2;
+  double halfHeight = (rect.height * scaleY * indicatorScale * 1.2) / 2;
 
   double left = centerX - halfWidth;
   double right = centerX + halfWidth;
   double top = centerY - halfHeight;
   double bottom = centerY + halfHeight;
+
   return Path()
-    ..moveTo(left - cornerExtension, top)
+    // Top-left corner (L-shape)
+    ..moveTo(left + cornerExtension, top)
     ..lineTo(left, top)
     ..lineTo(left, top + cornerExtension)
-    ..moveTo(right + cornerExtension, top)
+    // Top-right corner (L-shape)
+    ..moveTo(right - cornerExtension, top)
     ..lineTo(right, top)
     ..lineTo(right, top + cornerExtension)
-    ..moveTo(left - cornerExtension, bottom)
+    // Bottom-left corner (L-shape)
+    ..moveTo(left, bottom - cornerExtension)
     ..lineTo(left, bottom)
-    ..lineTo(left, bottom - cornerExtension)
-    ..moveTo(right + cornerExtension, bottom)
+    ..lineTo(left + cornerExtension, bottom)
+    // Bottom-right corner (L-shape)
+    ..moveTo(right, bottom - cornerExtension)
     ..lineTo(right, bottom)
-    ..lineTo(right, bottom - cornerExtension);
+    ..lineTo(right - cornerExtension, bottom);
 }
 
 RRect _scaleRect(
@@ -159,8 +213,9 @@ RRect _scaleRect(
     double indicatorScale = 1.0}) {
   double centerX = widgetSize.width - rect.center.dx * scaleX!;
   double centerY = rect.center.dy * scaleY!;
-  double halfWidth = (rect.width * scaleX * indicatorScale) / 2;
-  double halfHeight = (rect.height * scaleY * indicatorScale) / 2;
+  // Increase size by 10% for better visibility
+  double halfWidth = (rect.width * scaleX * indicatorScale * 1.1) / 2;
+  double halfHeight = (rect.height * scaleY * indicatorScale * 1.1) / 2;
 
   return RRect.fromLTRBR(centerX - halfWidth, centerY - halfHeight,
       centerX + halfWidth, centerY + halfHeight, const Radius.circular(10));
@@ -186,8 +241,9 @@ Path _trianglePath(
     bool isInverted = false}) {
   double centerX = widgetSize.width - rect.center.dx * scaleX!;
   double centerY = rect.center.dy * scaleY!;
-  double halfWidth = (rect.width * scaleX * indicatorScale) / 2;
-  double halfHeight = (rect.height * scaleY * indicatorScale) / 2;
+  // Increase size by 10% for better visibility
+  double halfWidth = (rect.width * scaleX * indicatorScale * 1.1) / 2;
+  double halfHeight = (rect.height * scaleY * indicatorScale * 1.1) / 2;
 
   if (isInverted) {
     return Path()

@@ -12,6 +12,8 @@ class FaceIdentifier {
       {required CameraImage cameraImage,
       required CameraController? controller,
       required FaceDetectorMode performanceMode}) async {
+    final imageSize =
+        Size(cameraImage.width.toDouble(), cameraImage.height.toDouble());
     final orientations = {
       DeviceOrientation.portraitUp: 0,
       DeviceOrientation.landscapeLeft: 90,
@@ -22,6 +24,7 @@ class FaceIdentifier {
     DetectedFace? result;
     final face = await _detectFace(
         performanceMode: performanceMode,
+        imageSize: imageSize,
         visionImage:
             _inputImageFromCameraImage(cameraImage, controller, orientations));
     if (face != null) {
@@ -97,7 +100,8 @@ class FaceIdentifier {
 
   static Future<DetectedFace?> _detectFace(
       {required InputImage? visionImage,
-      required FaceDetectorMode performanceMode}) async {
+      required FaceDetectorMode performanceMode,
+      required Size imageSize}) async {
     if (visionImage == null) return null;
     final options = FaceDetectorOptions(
         enableLandmarks: true,
@@ -106,7 +110,7 @@ class FaceIdentifier {
     final faceDetector = FaceDetector(options: options);
     try {
       final List<Face> faces = await faceDetector.processImage(visionImage);
-      final faceDetect = _extractFace(faces);
+      final faceDetect = _extractFace(faces, imageSize);
       return faceDetect;
     } catch (error) {
       debugPrint(error.toString());
@@ -114,7 +118,7 @@ class FaceIdentifier {
     }
   }
 
-  static _extractFace(List<Face> faces) {
+  static _extractFace(List<Face> faces, Size imageSize) {
     //List<Rect> rect = [];
     bool wellPositioned = faces.isNotEmpty;
     Face? detectedFace;
@@ -123,18 +127,23 @@ class FaceIdentifier {
       // rect.add(face.boundingBox);
       detectedFace = face;
 
-      // Head is rotated to the right rotY degrees
-      if (face.headEulerAngleY! > 5 || face.headEulerAngleY! < -5) {
+      // Check face size - should be 20-70% of image width
+      final faceWidthRatio = face.boundingBox.width / imageSize.width;
+      if (faceWidthRatio < 0.2 || faceWidthRatio > 0.7) {
         wellPositioned = false;
       }
 
-      // Head is tilted sideways rotZ degrees
-      if (face.headEulerAngleZ! > 5 || face.headEulerAngleZ! < -5) {
+      // Head is rotated to the right rotY degrees (relaxed to ±15 for maximum flexibility)
+      if (face.headEulerAngleY! > 15 || face.headEulerAngleY! < -15) {
         wellPositioned = false;
       }
 
-      // If landmark detection was enabled with FaceDetectorOptions (mouth, ears,
-      // eyes, cheeks, and nose available):
+      // Head is tilted sideways rotZ degrees (relaxed to ±15 for maximum flexibility)
+      if (face.headEulerAngleZ! > 15 || face.headEulerAngleZ! < -15) {
+        wellPositioned = false;
+      }
+
+      // Check for key facial landmarks (at least 3 out of 6 should be detected)
       final FaceLandmark? leftEar = face.landmarks[FaceLandmarkType.leftEar];
       final FaceLandmark? rightEar = face.landmarks[FaceLandmarkType.rightEar];
       final FaceLandmark? bottomMouth =
@@ -144,23 +153,28 @@ class FaceIdentifier {
       final FaceLandmark? leftMouth =
           face.landmarks[FaceLandmarkType.leftMouth];
       final FaceLandmark? noseBase = face.landmarks[FaceLandmarkType.noseBase];
-      if (leftEar == null ||
-          rightEar == null ||
-          bottomMouth == null ||
-          rightMouth == null ||
-          leftMouth == null ||
-          noseBase == null) {
+
+      int detectedLandmarks = 0;
+      if (leftEar != null) detectedLandmarks++;
+      if (rightEar != null) detectedLandmarks++;
+      if (bottomMouth != null) detectedLandmarks++;
+      if (rightMouth != null) detectedLandmarks++;
+      if (leftMouth != null) detectedLandmarks++;
+      if (noseBase != null) detectedLandmarks++;
+
+      if (detectedLandmarks < 3) {
         wellPositioned = false;
       }
 
+      // Check if eyes are reasonably open (relaxed threshold)
       if (face.leftEyeOpenProbability != null) {
-        if (face.leftEyeOpenProbability! < 0.5) {
+        if (face.leftEyeOpenProbability! < 0.3) {
           wellPositioned = false;
         }
       }
 
       if (face.rightEyeOpenProbability != null) {
-        if (face.rightEyeOpenProbability! < 0.5) {
+        if (face.rightEyeOpenProbability! < 0.3) {
           wellPositioned = false;
         }
       }
